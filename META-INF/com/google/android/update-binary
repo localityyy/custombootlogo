@@ -1,0 +1,66 @@
+#!/sbin/sh
+
+OUTFD=$2
+ZIP=$3
+
+ui_print() {
+  echo -n -e "ui_print $1\n" > /proc/self/fd/$OUTFD
+  echo -n -e "ui_print\n" > /proc/self/fd/$OUTFD
+}
+ui_print " "
+ui_print " "
+ui_print " "
+ui_print "----- Custom Bootlogo Installer -----"
+
+if [ ! -d "/sdcard/BootlogoInstaller" ]; then
+  ui_print " ^ Can't find directory - /sdcard/BootlogoInstaller"
+  exit 1
+fi
+
+if [ ! -e "/sdcard/BootlogoInstaller/logo.jpg" ]; then
+  ui_print " ^ Can't find file - logo.jpg in /sdcard/BootlogoInstaller"
+  exit 1
+fi
+
+if [ ! -e /data/media/0/PARAM.bak ]; then
+	ui_print " - Backing up current PARAM to /sdcard/PARAM.bak"
+	cat /dev/block/platform/sdio_emmc/by-name/PARAM > /data/media/0/PARAM.bak
+	chown 1023:1023 /data/media/0/PARAM.bak
+	chmod 664 /data/media/0/PARAM.bak
+fi
+
+cd /tmp
+rm -rf BootlogoInstaller
+mkdir BootlogoInstaller
+cd BootlogoInstaller
+unzip -o "$ZIP"
+
+ui_print " ^ Mounting data"
+mount /data
+
+ui_print " ^ Installing new bootlogo"
+
+chmod 755 tar
+mkdir tart
+cd tart
+/tmp/BootlogoInstaller/tar -xf /dev/block/platform/sdio_emmc/by-name/PARAM
+
+cp /sdcard/BootlogoInstaller/logo.jpg .
+chown root:root *
+chmod 444 logo.jpg
+touch *
+
+/tmp/BootlogoInstaller/tar -pcvf ../new.tar *
+cd ..
+cat new.tar > /dev/block/platform/sdio_emmc//by-name/PARAM
+
+ui_print " ^ Bootlogo installed!"
+ui_print " ^ Unmounting data"
+umount /data > /dev/null 2>&1
+ui_print " ^ Done! Dont forget to give a star to my repo!"
+ui_print " "
+ui_print " "
+ui_print " "
+rm -rf /tmp/BootlogoInstaller
+
+sync
